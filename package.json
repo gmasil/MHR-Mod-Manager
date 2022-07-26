@@ -2,11 +2,13 @@
 	"name": "mhr-mod-manager",
 	"version": "1.0.0",
 	"description": "Monster Hunter Rise Mod Manager for FirstNative",
+	"main": "./dist/main.js",
 	"scripts": {
 		"build": "tsc",
 		"watch": "tsc -w",
 		"lint": "eslint -c .eslintrc --ext .ts ./src",
-		"start": "npm run build && electron ./dist/main.js"
+		"dev": "npm run build && electron ./dist/main.js",
+		"pack": "rm -r target && electron-packager . MHR-Mod-Manager --prune --ignore=\\.ts$ --out=target --platform=win32 --arch=x64 && cp src/config.default.yml target/MHR-Mod-Manager-win32-x64/config.yml"
 	},
 	"repository": "https://github.com/electron/electron-quick-start-typescript",
 	"keywords": [
@@ -17,14 +19,17 @@
 		"demo",
 		"typescript"
 	],
-	"author": "GitHub",
-	"license": "CC0-1.0",
 	"devDependencies": {
+		"@types/js-yaml": "^4.0.5",
 		"@typescript-eslint/eslint-plugin": "^5.31.0",
 		"@typescript-eslint/parser": "^5.31.0",
 		"electron": "^19.0.9",
+		"electron-packager": "^15.5.1",
 		"eslint": "^8.20.0",
 		"eslint-plugin-sonarjs": "^0.14.0",
 		"typescript": "^4.7.4"
+	},
+	"dependencies": {
+		"js-yaml": "^4.1.0"
 	}
 }

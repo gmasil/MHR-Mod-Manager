@@ -1,5 +1,8 @@
 import { app, BrowserWindow } from "electron";
 import * as path from "path";
+import { Config } from "@/types/config";
+import * as fs from "fs";
+import * as yaml from "js-yaml";
 
 function createWindow(): void {
 	// Create the browser window.
@@ -11,11 +14,19 @@ function createWindow(): void {
 		width: 800,
 	});
 
+	mainWindow.setMenu(null);
+
 	// and load the index.html of the app.
 	mainWindow.loadFile(path.join(__dirname, "../index.html"));
 
 	// Open the DevTools.
-	mainWindow.webContents.openDevTools();
+	const config: Config = yaml.load(
+		fs.readFileSync("config.yml", { encoding: "utf-8" })
+	) as Config;
+
+	if (config.app.dev) {
+		mainWindow.webContents.openDevTools();
+	}
 }
 
 // This method will be called when Electron has finished
