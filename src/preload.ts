@@ -2,10 +2,13 @@ import { configService } from "./services/configservice";
 import { modService } from "./services/modservice";
 import { Mod } from "./types/mod";
 import { Config } from "./types/config";
+import * as feather from "feather-icons";
 
 // All of the Node.js APIs are available in the preload process.
 // It has the same sandbox as a Chrome extension.
 window.addEventListener("DOMContentLoaded", () => {
+	feather.replace();
+
 	const replaceText = (selector: string, text: string): void => {
 		const element: HTMLElement = document.getElementById(selector);
 		if (element) {
@@ -48,6 +51,11 @@ window.addEventListener("DOMContentLoaded", () => {
 			setModEntryProperty(template, "description", mod.description);
 			setModEntryProperty(template, "author", mod.author);
 			setModEntryProperty(template, "version", mod.version);
+			// set icon
+			const icon: string = mod.isBundle ? "plus-square" : "square";
+			template.content
+				.querySelector(".modentry-mainicon")
+				.setAttribute("data-feather", icon);
 			// create element
 			modListElement.appendChild(document.importNode(template.content, true));
 			if (mod.isBundle) {
@@ -62,5 +70,6 @@ window.addEventListener("DOMContentLoaded", () => {
 				});
 			}
 		});
+		feather.replace();
 	});
 });

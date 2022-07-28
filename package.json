@@ -20,6 +20,7 @@
 		"typescript"
 	],
 	"devDependencies": {
+		"@types/feather-icons": "^4.7.0",
 		"@types/js-yaml": "^4.0.5",
 		"@typescript-eslint/eslint-plugin": "^5.31.0",
 		"@typescript-eslint/parser": "^5.31.0",
@@ -31,6 +32,7 @@
 		"typescript": "^4.7.4"
 	},
 	"dependencies": {
+		"feather-icons": "^4.29.0",
 		"js-yaml": "^4.1.0",
 		"node-unrar-js": "^2.0.0"
 	}
