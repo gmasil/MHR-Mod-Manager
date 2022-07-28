@@ -1,15 +1,28 @@
 import { app, BrowserWindow } from "electron";
 import * as path from "path";
-import { Config } from "@/types/config";
-import * as fs from "fs";
-import * as yaml from "js-yaml";
+import { Config } from "./types/config";
+import { configService } from "./services/configservice";
+
+const config: Config = configService.loadConfig();
+if (config.app.dev) {
+	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	require("electron-reload")(
+		[
+			__dirname,
+			path.join(__dirname, "..", "index.html"),
+			path.join(__dirname, "../src/styles"),
+		],
+		{}
+	);
+}
 
 function createWindow(): void {
 	// Create the browser window.
 	const mainWindow: BrowserWindow = new BrowserWindow({
 		height: 600,
 		webPreferences: {
-			preload: path.join(__dirname, "preload.js"),
+			preload: path.join(__dirname, "./preload.js"),
+			nodeIntegration: true,
 		},
 		width: 800,
 	});
@@ -19,11 +32,7 @@ function createWindow(): void {
 	// and load the index.html of the app.
 	mainWindow.loadFile(path.join(__dirname, "../index.html"));
 
-	// Open the DevTools.
-	const config: Config = yaml.load(
-		fs.readFileSync("config.yml", { encoding: "utf-8" })
-	) as Config;
-
+	// Open the DevTools if desired
 	if (config.app.dev) {
 		mainWindow.webContents.openDevTools();
 	}

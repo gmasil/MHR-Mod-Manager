@@ -1,2 +1,4 @@
 app:
   dev: true
+  modsFolder: "D:/Steam/steamapps/common/MonsterHunterRise/MHR-Mods"
+  nativesFolder: "D:/Steam/steamapps/common/MonsterHunterRise/natives"

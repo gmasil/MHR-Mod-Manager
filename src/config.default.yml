@@ -1,2 +1,4 @@
 app:
   dev: false
+  modsFolder: "./mods"
+  nativesFolder: "./natives"

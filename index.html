@@ -1,16 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>Hello World!</title>
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
     <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
+    <link rel="stylesheet" type="text/css" href="src/styles/main.css">
   </head>
   <body>
-    <h1>Hello World!</h1>
-    <pre></pre> We are using Node.js <span id="node-version"></span>, Chromium <span id="chrome-version"></span>, and Electron <span id="electron-version"></span>.
-    <!-- You can also require other files to run in this process -->
-    <script src="./dist/renderer.js"></script>
+    <h1>MHR Mod Manager</h1>
+    <div id="modlist">
+      <template id="template-modentry">
+        <div class="modentry">
+          <div class="modentry-name"><span class="value">Name</span></div>
+          <div class="modentry-description"><span class="value">Description</span></div>
+          <div class="modentry-author">
+            <span>Author: </span><span class="value">Author</span>
+          </div>
+          <div class="modentry-version">
+            <span class="value">Version</span>
+          </div>
+          <div class="modentry-childred"></div>
+        </div>
+      </template>
+      <template id="template-modentry-child">
+        <p class="modentry-child-name"><span class="value">Name</span></p>
+      </template>
+    </div>
+    <pre></pre>
   </body>
 </html>
