@@ -5,15 +5,19 @@ import { configService } from "./services/configservice";
 
 const config: Config = configService.loadConfig();
 if (config.app.dev) {
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
-	require("electron-reload")(
-		[
-			__dirname,
-			path.join(__dirname, "..", "index.html"),
-			path.join(__dirname, "../src/styles"),
-		],
-		{}
-	);
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-var-requires
+		require("electron-reload")(
+			[
+				__dirname,
+				path.join(__dirname, "..", "index.html"),
+				path.join(__dirname, "../src/styles"),
+			],
+			{}
+		);
+	} catch (e) {
+		console.log("Cannot load module electron-reload, ignoring...");
+	}
 }
 
 function createWindow(): void {
