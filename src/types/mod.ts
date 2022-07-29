@@ -8,4 +8,5 @@ export interface Mod {
 	author: string;
 	version: string;
 	previewPath: string;
+	enabled: boolean;
 }

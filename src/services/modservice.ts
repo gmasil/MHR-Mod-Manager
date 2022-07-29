@@ -1,4 +1,5 @@
 import { Mod } from "../types/mod";
+import { ModConfig } from "../types/modconfig";
 import { ModInfoIni } from "../types/modinfoini";
 import * as unrar from "node-unrar-js";
 import {
@@ -30,8 +31,13 @@ export const readModList = async (folder: string): Promise<Mod[]> => {
 				const archives: string[] = readModArchiveList(folder);
 				const mods: Mod[] = [];
 
+				const modConfig: ModConfig = loadModConfig();
 				for (const archiveFile of archives) {
-					mods.push(await readModArchive(archiveFile));
+					const mod: Mod = await readModArchive(archiveFile);
+					if (isModEnabled(modConfig, mod)) {
+						mod.enabled = true;
+					}
+					mods.push(mod);
 				}
 
 				resolve(mergeModBundles(mods));
@@ -103,6 +109,7 @@ export const readModArchive = async (archiveFile: string): Promise<Mod> => {
 						author: modinfo.author,
 						version: modinfo.version,
 						previewPath: modinfo.screenshot,
+						enabled: false, // must be overwritten from ModConfig
 					};
 
 					resolve(mod);
@@ -148,6 +155,7 @@ export const mergeModBundles = (mods: Mod[]): Mod[] => {
 					author: null,
 					version: null,
 					previewPath: null,
+					enabled: false,
 				};
 				bundledMods.push(bundle);
 			}
@@ -198,18 +206,63 @@ export const mergeModBundles = (mods: Mod[]): Mod[] => {
 	return bundledMods;
 };
 
+export const loadModConfig = (): ModConfig => {
+	if (fs.existsSync("mods.yml")) {
+		return yaml.load(
+			fs.readFileSync("mods.yml", { encoding: "utf-8" })
+		) as ModConfig;
+	}
+	return { enabledMods: [] } as ModConfig;
+};
+
+export const isModEnabled = (config: ModConfig, mod: Mod): boolean => {
+	return (
+		config.enabledMods.filter(
+			(enabledMod: string) => enabledMod == path.basename(mod.filePath)
+		).length != 0
+	);
+};
+
+export const markModEnabled = (mod: Mod): void => {
+	const config: ModConfig = loadModConfig();
+	config.enabledMods.push(path.basename(mod.filePath));
+	fs.writeFile("mods.yml", yaml.dump(config), (err: NodeJS.ErrnoException) => {
+		if (err) {
+			console.log(err);
+		}
+	});
+};
+
+export const toggleModEnabled = (mod: Mod): boolean => {
+	const config: ModConfig = loadModConfig();
+	const enabled: boolean = isModEnabled(config, mod);
+	if (enabled) {
+		// remove mod
+		config.enabledMods = config.enabledMods.filter(
+			(enabledMod: string) => enabledMod != path.basename(mod.filePath)
+		);
+	} else {
+		// add mod
+		config.enabledMods.push(path.basename(mod.filePath));
+	}
+	fs.writeFile("mods.yml", yaml.dump(config), (err: NodeJS.ErrnoException) => {
+		if (err) {
+			console.log(err);
+		}
+	});
+	return !enabled;
+};
+
 interface ModService {
-	readModArchiveList: (folder: string) => string[];
 	readModList: (folder: string) => Promise<Mod[]>;
-	readModArchive: (archiveFile: string) => Promise<Mod>;
-	mergeModBundles: (mods: Mod[]) => Mod[];
+	markModEnabled: (mod: Mod) => void;
+	toggleModEnabled: (mod: Mod) => boolean;
 }
 
 export const modService: ModService = {
-	readModArchiveList,
 	readModList,
-	readModArchive,
-	mergeModBundles,
+	markModEnabled,
+	toggleModEnabled,
 };
 
 export default modService;

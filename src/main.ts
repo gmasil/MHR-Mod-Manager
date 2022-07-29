@@ -23,12 +23,12 @@ if (config.app.dev) {
 function createWindow(): void {
 	// Create the browser window.
 	const mainWindow: BrowserWindow = new BrowserWindow({
+		width: 1200,
 		height: 600,
 		webPreferences: {
 			preload: path.join(__dirname, "./preload.js"),
 			nodeIntegration: true,
 		},
-		width: 800,
 	});
 
 	mainWindow.setMenu(null);

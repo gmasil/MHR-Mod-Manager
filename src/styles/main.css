@@ -29,6 +29,9 @@ body {
 	display: none;
 }
 
+.clickable {
+	cursor: pointer;
+}
 /* mod list */
 
 #modlist {
