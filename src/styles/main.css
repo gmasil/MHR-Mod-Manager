@@ -31,6 +31,7 @@ body {
 
 .clickable {
 	cursor: pointer;
+	pointer-events: ;
 }
 /* mod list */
 
@@ -65,4 +66,18 @@ body {
 
 #modlist .modentry .modentry-version {
 	text-align: right;
+}
+
+/* mod list - bundle children */
+
+#modlist .modentry .modentry-childred {
+	grid-column-start: 1;
+	grid-column-end: span 2;
+}
+
+#modlist .modentry .modentry-childred .modentry-child {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.5em;
+	align-items: center;
 }

@@ -52,7 +52,6 @@ window.addEventListener("DOMContentLoaded", () => {
 			setModEntryProperty(template, "description", mod.description);
 			setModEntryProperty(template, "author", mod.author);
 			setModEntryProperty(template, "version", mod.version);
-			console.log(mod.filePath);
 			// set icon
 			let icon: string;
 			if (mod.isBundle) {
@@ -65,43 +64,89 @@ window.addEventListener("DOMContentLoaded", () => {
 			template.content
 				.querySelector(".modentry-mainicon .icon")
 				.setAttribute("data-feather", icon);
-			// create identifier for click listener
-			if (!mod.isBundle) {
-				template.content
-					.querySelector(".modentry-mainicon")
-					.setAttribute("mod-identifier", path.basename(mod.filePath));
-			}
 			// create element
 			modListElement.appendChild(document.importNode(template.content, true));
 			const createdElement: HTMLElement = document.querySelector(
 				"#modlist .modentry:last-child"
 			);
-			// add click listener
-			createdElement
-				.querySelector(".modentry-mainicon")
-				.addEventListener("click", (event: Event) => {
-					console.log("click");
-					const enabled: boolean = modService.toggleModEnabled(mod);
-					const target: HTMLElement = event.currentTarget as HTMLElement;
-					target.innerHTML = "";
-					const iconElement: HTMLElement = document.createElement("em");
-					iconElement.classList.add("icon");
-					iconElement.setAttribute(
-						"data-feather",
-						enabled ? "check-square" : "square"
-					);
-					target.appendChild(iconElement);
-					feather.replace();
-				});
+			// handle behaviour for bundle/mod
 			if (mod.isBundle) {
-				const childList: HTMLElement =
-					createdElement.querySelector(".modentry-childred");
+				// list child mods
+				const childList: HTMLElement = createdElement.querySelector(
+					".modentry-children .value"
+				);
 				mod.children.forEach((child: Mod) => {
+					// set name
 					setModEntryProperty(childtemplate, "child-name", child.name);
+					// set initial icon
+					const icon: string = child.enabled ? "check-square" : "square";
+					childtemplate.content
+						.querySelector(".modentry-child .modentry-child-icon .icon")
+						.setAttribute("data-feather", icon);
+					// create child
 					childList.appendChild(
 						document.importNode(childtemplate.content, true)
 					);
+					const createdChildElement: HTMLElement = childList.querySelector(
+						".modentry-child:last-child"
+					);
+					// add click listener
+					createdChildElement
+						.querySelector(".modentry-child-icon")
+						.addEventListener("click", (event: Event) => {
+							const enabled: boolean = modService.toggleModEnabled(child);
+							const target: HTMLElement = event.currentTarget as HTMLElement;
+							target.innerHTML = "";
+							const iconElement: HTMLElement = document.createElement("em");
+							iconElement.classList.add("icon");
+							iconElement.setAttribute(
+								"data-feather",
+								enabled ? "check-square" : "square"
+							);
+							target.appendChild(iconElement);
+							feather.replace();
+						});
 				});
+				// add click listener to open/close child mods
+				createdElement
+					.querySelector(".modentry-mainicon")
+					.addEventListener("click", (event: Event) => {
+						const target: HTMLElement = event.currentTarget as HTMLElement;
+						const wrapper: HTMLElement =
+							target.parentElement.querySelector(".modentry-children");
+						const open: boolean = wrapper.classList.contains("hidden");
+						target.innerHTML = "";
+						const iconElement: HTMLElement = document.createElement("em");
+						iconElement.classList.add("icon");
+						iconElement.setAttribute(
+							"data-feather",
+							open ? "minus-square" : "plus-square"
+						);
+						target.appendChild(iconElement);
+						feather.replace();
+						if (open) {
+							wrapper.classList.remove("hidden");
+						} else {
+							wrapper.classList.add("hidden");
+						}
+					});
+			} else {
+				// add click listener to enable/disable mod
+				createdElement
+					.querySelector(".modentry-mainicon")
+					.addEventListener("click", (event: Event) => {
+						const enabled: boolean = modService.toggleModEnabled(mod);
+						const target: HTMLElement = event.currentTarget as HTMLElement;
+						target.innerHTML = "";
+						const iconElement: HTMLElement = document.createElement("em");
+						iconElement.classList.add("icon");
+						iconElement.setAttribute(
+							"data-feather",
+							enabled ? "check-square" : "square"
+						);
+						target.appendChild(iconElement);
+						feather.replace();
+					});
 			}
 		});
 		feather.replace();
