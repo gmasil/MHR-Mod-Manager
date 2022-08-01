@@ -1,3 +1,3 @@
 export interface ModConfig {
-	enabledMods: string[];
+  enabledMods: string[];
 }

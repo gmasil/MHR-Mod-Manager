@@ -1,68 +1,87 @@
-import { app, BrowserWindow } from "electron";
+import {
+  app,
+  BrowserWindow,
+  protocol,
+  ProtocolRequest,
+  ProtocolResponse,
+} from "electron";
 import * as path from "path";
 import { Config } from "./types/config";
 import { configService } from "./services/configservice";
 
 const config: Config = configService.loadConfig();
 if (config.app.dev) {
-	try {
-		// eslint-disable-next-line @typescript-eslint/no-var-requires
-		require("electron-reload")(
-			[
-				__dirname,
-				path.join(__dirname, "..", "index.html"),
-				path.join(__dirname, "../src/styles"),
-			],
-			{}
-		);
-	} catch (e) {
-		console.log("Cannot load module electron-reload, ignoring...");
-	}
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require("electron-reload")(
+      [
+        __dirname,
+        path.join(__dirname, "..", "index.html"),
+        path.join(__dirname, "../src/styles"),
+      ],
+      {}
+    );
+  } catch (e) {
+    console.log("Cannot load module electron-reload, ignoring...");
+  }
 }
 
 function createWindow(): void {
-	// Create the browser window.
-	const mainWindow: BrowserWindow = new BrowserWindow({
-		width: 1200,
-		height: 600,
-		webPreferences: {
-			preload: path.join(__dirname, "./preload.js"),
-			nodeIntegration: true,
-		},
-	});
+  // Create the browser window.
+  const mainWindow: BrowserWindow = new BrowserWindow({
+    width: 1200,
+    height: 600,
+    webPreferences: {
+      preload: path.join(__dirname, "./preload.js"),
+      nodeIntegration: true,
+    },
+  });
 
-	mainWindow.setMenu(null);
+  mainWindow.setMenu(null);
 
-	// and load the index.html of the app.
-	mainWindow.loadFile(path.join(__dirname, "../index.html"));
+  // and load the index.html of the app.
+  mainWindow.loadFile(path.join(__dirname, "../index.html"));
 
-	// Open the DevTools if desired
-	if (config.app.dev) {
-		mainWindow.webContents.openDevTools();
-	}
+  // Open the DevTools if desired
+  if (config.app.dev) {
+    mainWindow.webContents.openDevTools();
+  }
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on("ready", () => {
-	createWindow();
+  createWindow();
 
-	app.on("activate", function () {
-		// On macOS it's common to re-create a window in the app when the
-		// dock icon is clicked and there are no other windows open.
-		if (BrowserWindow.getAllWindows().length === 0) createWindow();
-	});
+  app.on("activate", function () {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
-	if (process.platform !== "darwin") {
-		app.quit();
-	}
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+
+app.whenReady().then(() => {
+  protocol.registerFileProtocol(
+    "file",
+    (
+      request: ProtocolRequest,
+      callback: (response: string | Electron.ProtocolResponse) => void
+    ) => {
+      const pathname: string = decodeURI(request.url.replace("file:///", ""));
+      callback(pathname);
+    }
+  );
+});
