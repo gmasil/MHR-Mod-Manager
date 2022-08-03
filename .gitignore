@@ -1,6 +1,8 @@
 /node_modules/
 /dist/
-/target/
+/build/
 /mods.yml
 /config.yml
 /tmp/
+.vscode
+.idea

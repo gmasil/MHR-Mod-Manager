@@ -1,53 +1,77 @@
-# electron-quick-start-typescript
+<div align="center"> 
+  
+![image](https://user-images.githubusercontent.com/32544586/163651496-2589c0b0-4151-4941-9d90-4275eea5fd83.png)
 
-**Clone and run for a quick way to see Electron in action.**
+A simple starter template for a **Vue3** + **Electron** TypeScript based application, including **ViteJS** and **Electron Builder**.
+</div>
 
-This is a [TypeScript](https://www.typescriptlang.org) port of the [Electron Quick Start repo](https://github.com/electron/electron-quick-start) -- a minimal Electron application based on the [Quick Start Guide](http://electron.atom.io/docs/tutorial/quick-start) within the Electron documentation.
+## About
 
-**Use this app along with the [Electron API Demos](http://electron.atom.io/#get-started) app for API code examples to help you get started.**
+This template utilizes [ViteJS](https://vitejs.dev) for building and serving your (Vue powered) front-end process, it provides Hot Reloads (HMR) to make development fast and easy ⚡ 
 
-A basic Electron application needs just these files:
+Building the Electron (main) process is done with [Electron Builder](https://www.electron.build/), which makes your application easily distributable and supports cross-platform compilation 😎
 
-- `package.json` - Points to the app's main file and lists its details and dependencies.
-- `main.ts` - Starts the app and creates a browser window to render HTML. This is the app's **main process**.
-- `index.html` - A web page to render. This is the app's **renderer process**.
+## Getting started
 
-You can learn more about each of these components within the [Quick Start Guide](http://electron.atom.io/docs/tutorial/quick-start).
+Click the green **Use this template** button on top of the repository, and clone your own newly created repository.
 
-## To Use
+**Or..**
 
-To clone and run this repository you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
+Clone this repository: `git clone git@github.com:Deluze/electron-vue-template.git`
+
+
+### Install dependencies ⏬
 
 ```bash
-# Clone this repository
-git clone https://github.com/electron/electron-quick-start-typescript
-# Go into the repository
-cd electron-quick-start-typescript
-# Install dependencies
 npm install
-# Run the app
-npm start
 ```
 
-Note: If you're using Linux Bash for Windows, [see this guide](https://www.howtogeek.com/261575/how-to-run-graphical-linux-desktop-applications-from-windows-10s-bash-shell/) or use `node` from the command prompt.
-
-## Re-compile automatically
-
-To recompile automatically and to allow using [electron-reload](https://github.com/yan-foto/electron-reload), run this in a separate terminal:
+### Start developing ⚒️
 
 ```bash
-npm run watch
+npm run dev
 ```
 
-## Resources for Learning Electron
+## Additional Commands
 
-- [electronjs.org/docs](https://electronjs.org/docs) - all of Electron's documentation
-- [Electron Fiddle](https://electronjs.org/fiddle) - create, play, and share small Electron experiments
-- [electronjs.org/community#boilerplates](https://electronjs.org/community#boilerplates) - sample starter apps created by the community
-- [electron/electron-quick-start](https://github.com/electron/electron-quick-start) - a very basic starter Electron app
-- [electron/simple-samples](https://github.com/electron/simple-samples) - small applications with ideas for taking them further
-- [hokein/electron-sample-apps](https://github.com/hokein/electron-sample-apps) - small demo apps for the various Electron APIs
+```bash
+npm run dev # starts application with hot reload
+npm run build # builds application
 
-## License
+# OR
 
-[CC0 1.0 (Public Domain)](LICENSE.md)
+npm run build:win # uses windows as build target
+npm run build:mac # uses mac as build target
+npm run build:linux # uses linux as build target
+```
+
+Optional configuration options can be found in the [Electron Builder CLI docs](https://www.electron.build/cli.html).
+## Project Structure
+
+```bash
+- root
+  - config/
+    - vite.js # ViteJS configuration
+    - electron-builder.json # Electron Builder configuration
+  - scripts/ # all the scripts used to build or serve your application, change as you like.
+  - src/
+    - main/ # Main thread (Electron application source)
+    - renderer/ # Renderer thread (VueJS application source)
+```
+
+## Using static files
+
+If you have any files that you want to copy over to the app directory after installation, you will need to add those files in your `src/main/static` directory.
+
+#### Referencing static files from your main process
+
+```ts
+/* Assumes src/main/static/myFile.txt exists */
+
+import {app} from 'electron';
+import {join} from 'path';
+import {readFileSync} from 'fs';
+
+const path = join(app.getAppPath(), 'static', 'myFile.txt');
+const buffer = readFileSync(path);
+```

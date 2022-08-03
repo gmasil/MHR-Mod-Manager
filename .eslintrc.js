@@ -1,0 +1,93 @@
+module.exports = {
+  root: true,
+  parserOptions: {
+    ecmaVersion: 2020,
+  },
+  env: {
+    node: true,
+    browser: true,
+    es6: true,
+  },
+  overrides: [
+    {
+      files: ["**/*.ts", "**/*.tsx", "**/*.vue"],
+      env: {
+        node: true,
+        browser: true,
+        es6: true,
+        "vue/setup-compiler-macros": true,
+      },
+      extends: [
+        "plugin:vue/vue3-essential",
+        "plugin:vue/vue3-strongly-recommended",
+        "plugin:vue/vue3-recommended",
+        "@vue/typescript",
+        "@vue/typescript/recommended",
+        "@vue/prettier",
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:sonarjs/recommended",
+      ],
+      parser: "vue-eslint-parser",
+      parserOptions: {
+        parser: "@typescript-eslint/parser",
+        project: ["src/main/tsconfig.json", "src/renderer/tsconfig.json"],
+        ecmaVersion: 2020,
+      },
+      plugins: ["@typescript-eslint", "sonarjs", "vue"],
+      rules: {
+        "no-console": process.env.NODE_ENV === "production" ? "error" : "warn",
+        "no-debugger": process.env.NODE_ENV === "production" ? "error" : "warn",
+        "vue/multi-word-component-names": "off",
+        "@typescript-eslint/typedef": [
+          "error",
+          {
+            arrayDestructuring: true,
+            arrowParameter: true,
+            memberVariableDeclaration: true,
+            objectDestructuring: true,
+            parameter: true,
+            propertyDeclaration: true,
+            variableDeclaration: true,
+            variableDeclarationIgnoreFunction: true,
+          },
+        ],
+        "@typescript-eslint/no-inferrable-types": "off",
+        "@typescript-eslint/explicit-function-return-type": [
+          "error",
+          {
+            allowExpressions: false,
+            allowTypedFunctionExpressions: true, // allow anonymous lambda functions
+            allowHigherOrderFunctions: false,
+            allowDirectConstAssertionInArrowFunctions: false,
+            allowConciseArrowFunctionExpressionsStartingWithVoid: false,
+          },
+        ],
+        "@typescript-eslint/no-unused-vars": [
+          "warn",
+          { argsIgnorePattern: "^_" },
+        ],
+        // internet
+        "@typescript-eslint/adjacent-overload-signatures": "error",
+        "@typescript-eslint/array-type": "error",
+        "@typescript-eslint/ban-types": "error",
+        "@typescript-eslint/consistent-type-assertions": "error",
+        "@typescript-eslint/no-empty-interface": "error",
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-misused-new": "error",
+        "@typescript-eslint/no-namespace": "error",
+        "@typescript-eslint/no-parameter-properties": "error",
+        "@typescript-eslint/triple-slash-reference": "error",
+        "@typescript-eslint/no-var-requires": "error",
+        "@typescript-eslint/prefer-for-of": "error",
+        "@typescript-eslint/consistent-type-definitions": "error",
+        "@typescript-eslint/prefer-namespace-keyword": "error",
+        "@typescript-eslint/type-annotation-spacing": "error",
+        "@typescript-eslint/unified-signatures": "off",
+        "@typescript-eslint/member-ordering": "error",
+        "@typescript-eslint/no-empty-function": "error",
+      },
+    },
+  ],
+};
