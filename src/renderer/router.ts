@@ -14,8 +14,8 @@ import ModListView from "./components/ModList.vue";
 const routes: RouteRecordRaw[] = [
   {
     path: "/",
-    name: "HelloView",
-    component: HelloView,
+    name: "ModListView",
+    component: ModListView,
   },
   {
     path: "/empty",
@@ -23,9 +23,9 @@ const routes: RouteRecordRaw[] = [
     component: EmptyView,
   },
   {
-    path: "/mods",
-    name: "ModListView",
-    component: ModListView,
+    path: "/hello",
+    name: "HelloView",
+    component: HelloView,
   },
 ];
 

@@ -44,6 +44,7 @@
   "dependencies": {
     "js-yaml": "^4.1.0",
     "node-unrar-js": "^2.0.0",
+    "pinia": "^2.0.17",
     "vue": "^3.2.37",
     "vue-router": "^4.1.3"
   }

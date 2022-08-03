@@ -1,30 +1,23 @@
 <template>
-  <div id="empty">
-    <h1>Mods</h1>
-    <div v-for="mod in data.mods" :key="mod.id">
-      <span>
-        {{ mod.name }}
-      </span>
+  <div>
+    <h1 class="text-2xl">Mods</h1>
+    <div v-if="store.initializedMods">
+      <div v-for="mod in store.mods" :key="mod.id">
+        <p>
+          {{ mod.name }}
+        </p>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive } from "vue";
-import { Mod } from "../../main/api/mod";
-import * as electron from "../electron";
+import { useStore } from "../pinia";
+import type { Store } from "../pinia";
 
-interface BaseComponentData {
-  mods: Mod[];
-}
+const store: Store = useStore();
 
-const data: BaseComponentData = reactive({
-  mods: [],
-});
-
-onMounted(() => {
-  electron.readModList((mods: Mod[]) => {
-    data.mods = mods;
-  });
+defineExpose({
+  store,
 });
 </script>
