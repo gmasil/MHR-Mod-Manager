@@ -1,18 +1,10 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 import { Mod } from "./api/mod";
-import { ElectronApi, FileCallback, ModListCallback } from "./api/types";
+import { ElectronApi, ModListCallback, ModEnabledCallback } from "./api/types";
 
-contextBridge.exposeInMainWorld("api", {
+const x: ElectronApi = {
   log: (msg: string) => {
     ipcRenderer.send("log", msg);
-  },
-  readDir: (dir: string, func: FileCallback) => {
-    ipcRenderer.on(
-      "response-readDir",
-      (_event: IpcRendererEvent, arg: { dir: string; files: string[] }) =>
-        func(arg.dir, arg.files)
-    );
-    ipcRenderer.send("request-readDir", dir);
   },
   readModList: (func: ModListCallback) => {
     ipcRenderer.on(
@@ -21,4 +13,16 @@ contextBridge.exposeInMainWorld("api", {
     );
     ipcRenderer.send("request-readModList");
   },
-} as ElectronApi);
+  onModEnabledChange: (func: ModEnabledCallback) => {
+    ipcRenderer.on(
+      "response-toggleModEnabled",
+      (_event: IpcRendererEvent, mod: Mod, enabled: boolean) =>
+        func(mod, enabled)
+    );
+  },
+  toggleModEnabled: (filePath: string) => {
+    ipcRenderer.send("request-toggleModEnabled", filePath);
+  },
+};
+
+contextBridge.exposeInMainWorld("api", x);

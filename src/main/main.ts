@@ -48,12 +48,6 @@ ipcMain.on("log", (_event: IpcMainEvent, msg: string) => {
   console.log(msg);
 });
 
-ipcMain.on("request-readDir", (_event: IpcMainEvent, dir: string) => {
-  fs.readdir(dir).then((files: string[]) => {
-    mainWindow.webContents.send("response-readDir", { dir, files });
-  });
-});
-
 ipcMain.on("request-readModList", (_event: IpcMainEvent) => {
   configService.loadConfig().then((config: Config) => {
     modService.readModList(config.app.modsFolder).then((mods: Mod[]) => {
@@ -61,3 +55,14 @@ ipcMain.on("request-readModList", (_event: IpcMainEvent) => {
     });
   });
 });
+
+ipcMain.on(
+  "request-toggleModEnabled",
+  (_event: IpcMainEvent, filePath: string) => {
+    modService.readModArchive(filePath).then((mod: Mod) => {
+      modService.toggleModEnabled(mod).then((enabled: boolean) => {
+        mainWindow.webContents.send("response-toggleModEnabled", mod, enabled);
+      });
+    });
+  }
+);

@@ -35,7 +35,7 @@ export const readModList = async (folder: string): Promise<Mod[]> => {
         const archives: string[] = readModArchiveList(folder);
         const mods: Mod[] = [];
 
-        const modConfig: ModConfig = loadModConfig();
+        const modConfig: ModConfig = await loadModConfig();
         for (const archiveFile of archives) {
           const mod: Mod = await readModArchive(archiveFile);
           if (isModEnabled(modConfig, mod)) {
@@ -91,6 +91,7 @@ export const readModArchive = async (archiveFile: string): Promise<Mod> => {
             name: modinfo.name,
             bundleName: modinfo.NameAsBundle,
             isBundle: false,
+            isBundleCollapsed: false,
             children: [],
             filePath: archiveFile,
             description: modinfo.description,
@@ -161,6 +162,7 @@ export const mergeModBundles = (mods: Mod[]): Mod[] => {
           name: mod.bundleName,
           bundleName: mod.bundleName,
           isBundle: true,
+          isBundleCollapsed: true,
           children: [mod],
           filePath: null,
           description: mod.description,
@@ -197,13 +199,21 @@ export const mergeModBundles = (mods: Mod[]): Mod[] => {
   return bundledMods;
 };
 
-export const loadModConfig = (): ModConfig => {
-  if (fs.existsSync("mods.yml")) {
-    return yaml.load(
-      fs.readFileSync("mods.yml", { encoding: "utf-8" })
-    ) as ModConfig;
-  }
-  return { enabledMods: [] } as ModConfig;
+export const loadModConfig = async (): Promise<ModConfig> => {
+  return new Promise<ModConfig>(
+    (resolve: Resolve<ModConfig>, _reject: Reject) => {
+      (async (): Promise<void> => {
+        if (fs.existsSync("mods.yml")) {
+          const config: ModConfig = yaml.load(
+            fs.readFileSync("mods.yml", { encoding: "utf-8" })
+          ) as ModConfig;
+          resolve(config);
+        } else {
+          resolve({ enabledMods: [] } as ModConfig);
+        }
+      })();
+    }
+  );
 };
 
 export const isModEnabled = (config: ModConfig, mod: Mod): boolean => {
@@ -217,12 +227,13 @@ export const isModEnabled = (config: ModConfig, mod: Mod): boolean => {
   return false;
 };
 
-export const markModEnabled = (mod: Mod): void => {
-  if (mod.filePath) {
-    const config: ModConfig = loadModConfig();
-    config.enabledMods.push(path.basename(mod.filePath));
-    fs.writeFileSync("mods.yml", yaml.dump(config));
-  }
+export const saveModConfig = (config: ModConfig): Promise<void> => {
+  return new Promise<void>((resolve: Resolve<void>, reject: Reject) => {
+    (async (): Promise<void> => {
+      fs.writeFileSync("mods.yml", yaml.dump(config));
+      resolve();
+    })();
+  });
 };
 
 export const toggleModEnabled = async (mod: Mod): Promise<boolean> => {
@@ -230,7 +241,7 @@ export const toggleModEnabled = async (mod: Mod): Promise<boolean> => {
     (async (): Promise<void> => {
       if (mod.filePath) {
         const basename: string = path.basename(mod.filePath);
-        const config: ModConfig = loadModConfig();
+        const config: ModConfig = await loadModConfig();
         const enabled: boolean = isModEnabled(config, mod);
         if (enabled) {
           // remove mod
@@ -244,6 +255,7 @@ export const toggleModEnabled = async (mod: Mod): Promise<boolean> => {
           await unpackMod(mod, false);
         }
         fs.writeFileSync("mods.yml", yaml.dump(config));
+        mod.enabled = !enabled;
         resolve(!enabled);
       } else {
         reject(new Error(`Mod ${mod.name} has no filePath!`));
@@ -310,14 +322,18 @@ export const unpackMod = async (
 
 interface ModService {
   readModList: (folder: string) => Promise<Mod[]>;
-  markModEnabled: (mod: Mod) => void;
+  saveModConfig: (config: ModConfig) => Promise<void>;
   toggleModEnabled: (mod: Mod) => Promise<boolean>;
+  readModArchive: (archiveFile: string) => Promise<Mod>;
+  loadModConfig: () => Promise<ModConfig>;
 }
 
 export const modService: ModService = {
   readModList,
-  markModEnabled,
+  saveModConfig,
   toggleModEnabled,
+  readModArchive,
+  loadModConfig,
 };
 
 export default modService;

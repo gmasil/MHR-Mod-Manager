@@ -3,6 +3,7 @@ export interface Mod {
   name: string;
   bundleName: string;
   isBundle: boolean;
+  isBundleCollapsed: boolean;
   children: Mod[];
   filePath: string | null;
   description: string;

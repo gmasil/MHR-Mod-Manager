@@ -8,7 +8,6 @@ import {
 } from "vue-router";
 
 import HelloView from "./components/Hello.vue";
-import EmptyView from "./components/Empty.vue";
 import ModListView from "./components/ModList.vue";
 
 const routes: RouteRecordRaw[] = [
@@ -16,11 +15,6 @@ const routes: RouteRecordRaw[] = [
     path: "/",
     name: "ModListView",
     component: ModListView,
-  },
-  {
-    path: "/empty",
-    name: "EmptyView",
-    component: EmptyView,
   },
   {
     path: "/hello",

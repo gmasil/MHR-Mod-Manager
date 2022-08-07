@@ -1,11 +1,15 @@
+import { Mod } from "../main/api/mod";
 import type {
   LogFunction,
-  ReadDirFunction,
+  ModEnabledCallback,
   ReadModListFunction,
 } from "../main/api/types";
 
 const log: LogFunction = window.api.log;
-const readDir: ReadDirFunction = window.api.readDir;
 const readModList: ReadModListFunction = window.api.readModList;
+const onModEnabledChange: (func: ModEnabledCallback) => void =
+  window.api.onModEnabledChange;
+const toggleModEnabled: (filePath: string) => void =
+  window.api.toggleModEnabled;
 
-export { log, readDir, readModList };
+export { log, readModList, onModEnabledChange, toggleModEnabled };
