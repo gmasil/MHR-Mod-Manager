@@ -11,8 +11,11 @@ import type {
 } from "node-unrar-js";
 import { Resolve, Reject } from "../api/promise";
 import * as fs from "fs";
+import * as fse from "fs-extra";
 import * as path from "path";
 import * as yaml from "js-yaml";
+import configService from "./configservice";
+import { Config } from "../api/config";
 
 export const readModArchiveList = (folder: string): string[] => {
   if (fs.existsSync(folder)) {
@@ -204,31 +207,36 @@ export const loadModConfig = async (): Promise<ModConfig> => {
     (resolve: Resolve<ModConfig>, _reject: Reject) => {
       (async (): Promise<void> => {
         if (fs.existsSync("mods.yml")) {
-          const config: ModConfig = yaml.load(
+          const modConfig: ModConfig = yaml.load(
             fs.readFileSync("mods.yml", { encoding: "utf-8" })
           ) as ModConfig;
-          resolve(config);
+          if (modConfig === undefined || !modConfig.enabledMods) {
+            resolve({ enabledMods: [] });
+          } else {
+            resolve(modConfig);
+          }
         } else {
-          resolve({ enabledMods: [] } as ModConfig);
+          resolve({ enabledMods: [] });
         }
       })();
     }
   );
 };
 
-export const isModEnabled = (config: ModConfig, mod: Mod): boolean => {
+export const isModEnabled = (modConfig: ModConfig, mod: Mod): boolean => {
   if (mod.filePath) {
     const basename: string = path.basename(mod.filePath);
     return (
-      config.enabledMods.filter((enabledMod: string) => enabledMod == basename)
-        .length != 0
+      modConfig.enabledMods.filter(
+        (enabledMod: string) => enabledMod == basename
+      ).length != 0
     );
   }
   return false;
 };
 
 export const saveModConfig = (config: ModConfig): Promise<void> => {
-  return new Promise<void>((resolve: Resolve<void>, reject: Reject) => {
+  return new Promise<void>((resolve: Resolve<void>, _reject: Reject) => {
     (async (): Promise<void> => {
       fs.writeFileSync("mods.yml", yaml.dump(config));
       resolve();
@@ -241,22 +249,32 @@ export const toggleModEnabled = async (mod: Mod): Promise<boolean> => {
     (async (): Promise<void> => {
       if (mod.filePath) {
         const basename: string = path.basename(mod.filePath);
-        const config: ModConfig = await loadModConfig();
-        const enabled: boolean = isModEnabled(config, mod);
+        const modConfig: ModConfig = await loadModConfig();
+        const enabled: boolean = isModEnabled(modConfig, mod);
         if (enabled) {
           // remove mod
-          config.enabledMods = config.enabledMods.filter(
+          modConfig.enabledMods = modConfig.enabledMods.filter(
             (enabledMod: string) => enabledMod != basename
           );
+          fs.writeFileSync("mods.yml", yaml.dump(modConfig));
+          // make sure all other mods are enabled
+          await rebuildNativesFolder();
         } else {
           // add mod
-          config.enabledMods.push(path.basename(mod.filePath));
+          modConfig.enabledMods.push(path.basename(mod.filePath));
+          fs.writeFileSync("mods.yml", yaml.dump(modConfig));
           // unpack everything
-          await unpackMod(mod, false);
+          const targetFolder: string = await unpackMod(mod, false);
+          const config: Config = await configService.loadConfig();
+          // enable mod on top of previous
+          fse.copySync(
+            path.join(targetFolder, "natives"),
+            config.app.nativesFolder,
+            { overwrite: true }
+          );
         }
-        fs.writeFileSync("mods.yml", yaml.dump(config));
         mod.enabled = !enabled;
-        resolve(!enabled);
+        resolve(mod.enabled);
       } else {
         reject(new Error(`Mod ${mod.name} has no filePath!`));
       }
@@ -264,60 +282,95 @@ export const toggleModEnabled = async (mod: Mod): Promise<boolean> => {
   });
 };
 
+export const rebuildNativesFolder = async (): Promise<boolean> => {
+  return new Promise<boolean>((resolve: Resolve<boolean>, _reject: Reject) => {
+    (async (): Promise<void> => {
+      const config: Config = await configService.loadConfig();
+      const modConfig: ModConfig = await loadModConfig();
+
+      fse.emptyDirSync(config.app.nativesFolder);
+
+      for (const filePath of modConfig.enabledMods) {
+        const mod: Mod = await readModArchive(
+          path.join(config.app.modsFolder, filePath)
+        );
+        const targetFolder: string = await unpackMod(mod, false);
+
+        fse.copySync(
+          path.join(targetFolder, "natives"),
+          config.app.nativesFolder,
+          { overwrite: true }
+        );
+      }
+
+      resolve(true);
+    })();
+  });
+};
+
 export const unpackMod = async (
   mod: Mod,
   screenshotOnly: boolean
-): Promise<void> => {
-  if (mod.filePath) {
-    const basename: string = path.basename(mod.filePath);
-    const buf: ArrayBufferLike = Uint8Array.from(
-      fs.readFileSync(mod.filePath)
-    ).buffer;
-    const extractor: Extractor<Uint8Array> =
-      await unrar.createExtractorFromData({
-        data: buf,
-      });
-    const list: ArcList = extractor.getFileList();
-    const fileHeaders: FileHeader[] = [...list.fileHeaders];
-    const modinfoFileHeaders: FileHeader[] = fileHeaders.filter(
-      (fileHeader: FileHeader) =>
-        path.basename(fileHeader.name) == "modinfo.ini"
-    );
-    if (modinfoFileHeaders.length == 1) {
-      const subdirs: number = modinfoFileHeaders[0].name.split("/").length - 1;
-      const fileHeadersExtract: FileHeader[] = screenshotOnly
-        ? fileHeaders.filter((fileHeader: FileHeader) => {
-            return path.basename(fileHeader.name) == mod.previewPath;
-          })
-        : fileHeaders;
-      const extracted: ArcFiles<Uint8Array> = extractor.extract({
-        files: fileHeadersExtract.map(
-          (fileHeader: FileHeader) => fileHeader.name
-        ),
-      });
-      const files: ArcFile<Uint8Array>[] = [...extracted.files];
-      files.forEach((file: ArcFile<Uint8Array>) => {
-        if (file.fileHeader && file.extraction) {
-          let relPath: string = file.fileHeader.name;
-          if (subdirs == 0 || relPath.indexOf("/") != -1) {
-            // only continue if its a valid file (excludes topfolders)
-            for (let i: number = 0; i < subdirs; i++) {
-              relPath = relPath.substring(relPath.indexOf("/") + 1);
-            }
+): Promise<string> => {
+  return new Promise<string>((resolve: Resolve<string>, _reject: Reject) => {
+    (async (): Promise<void> => {
+      if (mod.filePath) {
+        const basename: string = path.basename(mod.filePath);
+        const buf: ArrayBufferLike = Uint8Array.from(
+          fs.readFileSync(mod.filePath)
+        ).buffer;
+        const extractor: Extractor<Uint8Array> =
+          await unrar.createExtractorFromData({
+            data: buf,
+          });
+        const list: ArcList = extractor.getFileList();
+        const fileHeaders: FileHeader[] = [...list.fileHeaders];
+        const modinfoFileHeaders: FileHeader[] = fileHeaders.filter(
+          (fileHeader: FileHeader) =>
+            path.basename(fileHeader.name) == "modinfo.ini"
+        );
+        if (modinfoFileHeaders.length == 1) {
+          const subdirs: number =
+            modinfoFileHeaders[0].name.split("/").length - 1;
+          const fileHeadersExtract: FileHeader[] = screenshotOnly
+            ? fileHeaders.filter((fileHeader: FileHeader) => {
+                return path.basename(fileHeader.name) == mod.previewPath;
+              })
+            : fileHeaders;
+          const extracted: ArcFiles<Uint8Array> = extractor.extract({
+            files: fileHeadersExtract.map(
+              (fileHeader: FileHeader) => fileHeader.name
+            ),
+          });
 
-            const targetPath: string = path.join("./tmp", basename, relPath);
+          const targetFolder: string = path.join("./tmp", basename);
 
-            if (file.fileHeader.flags.directory) {
-              fs.mkdirSync(targetPath, { recursive: true });
-            } else {
-              fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-              fs.writeFileSync(targetPath, file.extraction);
+          const files: ArcFile<Uint8Array>[] = [...extracted.files];
+          files.forEach((file: ArcFile<Uint8Array>) => {
+            if (file.fileHeader && file.extraction) {
+              let relPath: string = file.fileHeader.name;
+              if (subdirs == 0 || relPath.indexOf("/") != -1) {
+                // only continue if its a valid file (excludes topfolders)
+                for (let i: number = 0; i < subdirs; i++) {
+                  relPath = relPath.substring(relPath.indexOf("/") + 1);
+                }
+
+                const targetPath: string = path.join(targetFolder, relPath);
+
+                if (file.fileHeader.flags.directory) {
+                  fs.mkdirSync(targetPath, { recursive: true });
+                } else {
+                  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+                  fs.writeFileSync(targetPath, file.extraction);
+                }
+              }
             }
-          }
+          });
+          resolve(targetFolder);
         }
-      });
-    }
-  }
+      }
+    })();
+  });
 };
 
 interface ModService {
