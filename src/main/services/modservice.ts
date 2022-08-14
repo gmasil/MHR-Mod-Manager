@@ -46,7 +46,10 @@ export const readModList = async (folder: string): Promise<Mod[]> => {
           }
           mods.push(mod);
           // unpack screenshot only
-          await unpackMod(mod, true);
+          //await unpackMod(mod, true);
+
+          // FIXME: unpack completely on startup
+          await unpackMod(mod, false);
         }
 
         resolve(mergeModBundles(mods));
@@ -291,15 +294,21 @@ export const rebuildNativesFolder = async (): Promise<boolean> => {
       fse.emptyDirSync(config.app.nativesFolder);
 
       for (const filePath of modConfig.enabledMods) {
+        /*
         const mod: Mod = await readModArchive(
           path.join(config.app.modsFolder, filePath)
         );
-        const targetFolder: string = await unpackMod(mod, false);
+        */
+        //const targetFolder: string = await unpackMod(mod, false);
+        const basename: string = path.basename(filePath);
+        const targetFolder: string = path.join("./tmp", basename);
 
-        fse.copySync(
+        await fse.copy(
           path.join(targetFolder, "natives"),
           config.app.nativesFolder,
-          { overwrite: true }
+          {
+            overwrite: true,
+          }
         );
       }
 
