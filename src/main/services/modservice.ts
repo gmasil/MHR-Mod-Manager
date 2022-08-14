@@ -11,31 +11,38 @@ import type {
 } from "node-unrar-js";
 import { Resolve, Reject } from "../api/promise";
 import * as fs from "fs";
+import * as fsp from "fs/promises"; // TODO: replace all fs sync calls with promise based
 import * as fse from "fs-extra";
 import * as path from "path";
 import * as yaml from "js-yaml";
 import configService from "./configservice";
 import { Config } from "../api/config";
 
-export const readModArchiveList = (folder: string): string[] => {
-  if (fs.existsSync(folder)) {
-    return fs
-      .readdirSync(folder)
-      .map((file: string) => path.join(folder, file))
-      .filter(
-        (file: string) =>
-          file.endsWith(".rar") && !fs.lstatSync(file).isDirectory()
-      );
-  } else {
-    return [];
-  }
+export const readModArchiveList = async (folder: string): Promise<string[]> => {
+  return new Promise<string[]>((resolve: Resolve<string[]>, reject: Reject) => {
+    (async (): Promise<void> => {
+      try {
+        const folders: string[] = await fsp.readdir(folder);
+        resolve(
+          folders
+            .map((file: string) => path.join(folder, file))
+            .filter(
+              (file: string) =>
+                file.endsWith(".rar") && !fs.lstatSync(file).isDirectory()
+            )
+        );
+      } catch (err) {
+        reject(err);
+      }
+    })();
+  });
 };
 
 export const readModList = async (folder: string): Promise<Mod[]> => {
   return new Promise<Mod[]>((resolve: Resolve<Mod[]>, reject: Reject) => {
     (async (): Promise<void> => {
       try {
-        const archives: string[] = readModArchiveList(folder);
+        const archives: string[] = await readModArchiveList(folder);
         const mods: Mod[] = [];
 
         const modConfig: ModConfig = await loadModConfig();
@@ -65,9 +72,8 @@ export const readModArchive = async (archiveFile: string): Promise<Mod> => {
     (async (): Promise<void> => {
       try {
         // read archive
-        const buf: ArrayBufferLike = Uint8Array.from(
-          fs.readFileSync(archiveFile)
-        ).buffer;
+        const fileBuffer: Buffer = await fsp.readFile(archiveFile);
+        const buf: ArrayBufferLike = Uint8Array.from(fileBuffer).buffer;
         const extractor: Extractor<Uint8Array> =
           await unrar.createExtractorFromData({
             data: buf,
@@ -209,16 +215,17 @@ export const loadModConfig = async (): Promise<ModConfig> => {
   return new Promise<ModConfig>(
     (resolve: Resolve<ModConfig>, _reject: Reject) => {
       (async (): Promise<void> => {
-        if (fs.existsSync("mods.yml")) {
-          const modConfig: ModConfig = yaml.load(
-            fs.readFileSync("mods.yml", { encoding: "utf-8" })
-          ) as ModConfig;
+        try {
+          const modsContents: string = await fsp.readFile("mods.yml", {
+            encoding: "utf-8",
+          });
+          const modConfig: ModConfig = yaml.load(modsContents) as ModConfig;
           if (modConfig === undefined || !modConfig.enabledMods) {
             resolve({ enabledMods: [] });
           } else {
             resolve(modConfig);
           }
-        } else {
+        } catch (_ex: unknown) {
           resolve({ enabledMods: [] });
         }
       })();
@@ -241,7 +248,7 @@ export const isModEnabled = (modConfig: ModConfig, mod: Mod): boolean => {
 export const saveModConfig = (config: ModConfig): Promise<void> => {
   return new Promise<void>((resolve: Resolve<void>, _reject: Reject) => {
     (async (): Promise<void> => {
-      fs.writeFileSync("mods.yml", yaml.dump(config));
+      await fsp.writeFile("mods.yml", yaml.dump(config));
       resolve();
     })();
   });
@@ -265,12 +272,12 @@ export const toggleModEnabled = async (mod: Mod): Promise<boolean> => {
         } else {
           // add mod
           modConfig.enabledMods.push(path.basename(mod.filePath));
-          fs.writeFileSync("mods.yml", yaml.dump(modConfig));
+          await fsp.writeFile("mods.yml", yaml.dump(modConfig));
           // unpack everything
           const targetFolder: string = await unpackMod(mod, false);
           const config: Config = await configService.loadConfig();
           // enable mod on top of previous
-          fse.copySync(
+          await fse.copy(
             path.join(targetFolder, "natives"),
             config.app.nativesFolder,
             { overwrite: true }
@@ -291,7 +298,7 @@ export const rebuildNativesFolder = async (): Promise<boolean> => {
       const config: Config = await configService.loadConfig();
       const modConfig: ModConfig = await loadModConfig();
 
-      fse.emptyDirSync(config.app.nativesFolder);
+      await fse.emptyDir(config.app.nativesFolder);
 
       for (const filePath of modConfig.enabledMods) {
         /*
@@ -326,7 +333,7 @@ export const unpackMod = async (
       if (mod.filePath) {
         const basename: string = path.basename(mod.filePath);
         const buf: ArrayBufferLike = Uint8Array.from(
-          fs.readFileSync(mod.filePath)
+          await fsp.readFile(mod.filePath)
         ).buffer;
         const extractor: Extractor<Uint8Array> =
           await unrar.createExtractorFromData({
@@ -355,7 +362,9 @@ export const unpackMod = async (
           const targetFolder: string = path.join("./tmp", basename);
 
           const files: ArcFile<Uint8Array>[] = [...extracted.files];
-          files.forEach((file: ArcFile<Uint8Array>) => {
+          //files.forEach((file: ArcFile<Uint8Array>) => {
+
+          for (const file of files) {
             if (file.fileHeader && file.extraction) {
               let relPath: string = file.fileHeader.name;
               if (subdirs == 0 || relPath.indexOf("/") != -1) {
@@ -367,14 +376,16 @@ export const unpackMod = async (
                 const targetPath: string = path.join(targetFolder, relPath);
 
                 if (file.fileHeader.flags.directory) {
-                  fs.mkdirSync(targetPath, { recursive: true });
+                  await fsp.mkdir(targetPath, { recursive: true });
                 } else {
-                  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-                  fs.writeFileSync(targetPath, file.extraction);
+                  await fsp.mkdir(path.dirname(targetPath), {
+                    recursive: true,
+                  });
+                  await fsp.writeFile(targetPath, file.extraction);
                 }
               }
             }
-          });
+          }
           resolve(targetFolder);
         }
       }
