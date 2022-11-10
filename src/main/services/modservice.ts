@@ -328,66 +328,72 @@ export const unpackMod = async (
   mod: Mod,
   screenshotOnly: boolean
 ): Promise<string> => {
-  return new Promise<string>((resolve: Resolve<string>, _reject: Reject) => {
+  return new Promise<string>((resolve: Resolve<string>, reject: Reject) => {
     (async (): Promise<void> => {
       if (mod.filePath) {
         const basename: string = path.basename(mod.filePath);
-        const buf: ArrayBufferLike = Uint8Array.from(
-          await fsp.readFile(mod.filePath)
-        ).buffer;
-        const extractor: Extractor<Uint8Array> =
-          await unrar.createExtractorFromData({
-            data: buf,
-          });
-        const list: ArcList = extractor.getFileList();
-        const fileHeaders: FileHeader[] = [...list.fileHeaders];
-        const modinfoFileHeaders: FileHeader[] = fileHeaders.filter(
-          (fileHeader: FileHeader) =>
-            path.basename(fileHeader.name) == "modinfo.ini"
-        );
-        if (modinfoFileHeaders.length == 1) {
-          const subdirs: number =
-            modinfoFileHeaders[0].name.split("/").length - 1;
-          const fileHeadersExtract: FileHeader[] = screenshotOnly
-            ? fileHeaders.filter((fileHeader: FileHeader) => {
-                return path.basename(fileHeader.name) == mod.previewPath;
-              })
-            : fileHeaders;
-          const extracted: ArcFiles<Uint8Array> = extractor.extract({
-            files: fileHeadersExtract.map(
-              (fileHeader: FileHeader) => fileHeader.name
-            ),
-          });
+        const targetFolder: string = path.join("./tmp", basename);
 
-          const targetFolder: string = path.join("./tmp", basename);
+        if (!fs.existsSync(targetFolder)) {
+          const buf: ArrayBufferLike = Uint8Array.from(
+            await fsp.readFile(mod.filePath)
+          ).buffer;
+          const extractor: Extractor<Uint8Array> =
+            await unrar.createExtractorFromData({
+              data: buf,
+            });
+          const list: ArcList = extractor.getFileList();
+          const fileHeaders: FileHeader[] = [...list.fileHeaders];
+          const modinfoFileHeaders: FileHeader[] = fileHeaders.filter(
+            (fileHeader: FileHeader) =>
+              path.basename(fileHeader.name) == "modinfo.ini"
+          );
+          if (modinfoFileHeaders.length == 1) {
+            const subdirs: number =
+              modinfoFileHeaders[0].name.split("/").length - 1;
+            const fileHeadersExtract: FileHeader[] = screenshotOnly
+              ? fileHeaders.filter((fileHeader: FileHeader) => {
+                  return path.basename(fileHeader.name) == mod.previewPath;
+                })
+              : fileHeaders;
+            const extracted: ArcFiles<Uint8Array> = extractor.extract({
+              files: fileHeadersExtract.map(
+                (fileHeader: FileHeader) => fileHeader.name
+              ),
+            });
 
-          const files: ArcFile<Uint8Array>[] = [...extracted.files];
-          //files.forEach((file: ArcFile<Uint8Array>) => {
+            const files: ArcFile<Uint8Array>[] = [...extracted.files];
+            //files.forEach((file: ArcFile<Uint8Array>) => {
 
-          for (const file of files) {
-            if (file.fileHeader && file.extraction) {
-              let relPath: string = file.fileHeader.name;
-              if (subdirs == 0 || relPath.indexOf("/") != -1) {
-                // only continue if its a valid file (excludes topfolders)
-                for (let i: number = 0; i < subdirs; i++) {
-                  relPath = relPath.substring(relPath.indexOf("/") + 1);
-                }
+            for (const file of files) {
+              if (file.fileHeader && file.extraction) {
+                let relPath: string = file.fileHeader.name;
+                if (subdirs == 0 || relPath.indexOf("/") != -1) {
+                  // only continue if its a valid file (excludes topfolders)
+                  for (let i: number = 0; i < subdirs; i++) {
+                    relPath = relPath.substring(relPath.indexOf("/") + 1);
+                  }
 
-                const targetPath: string = path.join(targetFolder, relPath);
+                  const targetPath: string = path.join(targetFolder, relPath);
 
-                if (file.fileHeader.flags.directory) {
-                  await fsp.mkdir(targetPath, { recursive: true });
-                } else {
-                  await fsp.mkdir(path.dirname(targetPath), {
-                    recursive: true,
-                  });
-                  await fsp.writeFile(targetPath, file.extraction);
+                  if (file.fileHeader.flags.directory) {
+                    await fsp.mkdir(targetPath, { recursive: true });
+                  } else {
+                    await fsp.mkdir(path.dirname(targetPath), {
+                      recursive: true,
+                    });
+                    await fsp.writeFile(targetPath, file.extraction);
+                  }
                 }
               }
             }
+            resolve(targetFolder);
           }
+        } else {
           resolve(targetFolder);
         }
+      } else {
+        reject("No file path given!");
       }
     })();
   });
